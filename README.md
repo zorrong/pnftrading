@@ -1,12 +1,5 @@
 
-![logo](https://github.com/swaschke/pypnf/blob/main/images/logo.png)
-
 ### A Python Package for Point & Figure Charting
-
-[![license](https://img.shields.io/github/license/swaschke/pypnf)](#license)
-[![Python Version](https://img.shields.io/pypi/pyversions/pypnf?style=flat)](https://pypi.org/project/pypnf/)
-[![PyPi Version](https://img.shields.io/pypi/v/pypnf?style=flat)](https://pypi.org/project/pypnf/)
-[![Package Status](https://img.shields.io/pypi/status/pypnf?style=flat)](https://pypi.org/project/pypnf/)
 
 <hr>
 
@@ -77,7 +70,6 @@ pnf.donchian(8,2)
 pnf.psar(0.02, 0.2)
 pnf.show()
 ```
-![chart](https://github.com/swaschke/pypnf/blob/main/images/chart.png)
 
 #### Quickstart using time-series data loaded via the external package yfinance
 

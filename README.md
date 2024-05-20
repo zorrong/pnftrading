@@ -13,6 +13,11 @@
 ### Installation
 ```python
 pip install pypnf
+pip install yfinance 
+pip install pypnf
+pip install streamlit 
+pip install matplotlib.pyplot
+
 ```
 
 <hr>

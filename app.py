@@ -1,78 +1,91 @@
 import yfinance as yf
+from pypnf import PointFigureChart
 import streamlit as st
 import matplotlib.pyplot as plt
-import mplfinance as mpf
-import pandas as pd
-from ta.volatility import BollingerBands, DonchianChannel
-from ta.trend import PSARIndicator
 
 def fetch_data(symbol, period):
     data = yf.Ticker(symbol)
     ts = data.history(period)
-    ts['Date'] = ts.index
-    ts.reset_index(level=0, inplace=True, drop=True)
+    ts.reset_index(level=0, inplace=True)
+    ts['Date'] = ts['Date'].dt.strftime('%Y-%m-%d')
+    ts = ts.to_dict('list')
     return ts
 
 def calculate_boxsize(method, ts, atr_period=None, custom_value=None, percentage_value=None):
     if method == 'ATR':
-        price_data = ts['Close']
+        # Use ATR calculation with the specified period
+        price_data = [price for price in ts['Close']]
         if len(price_data) < atr_period:
             atr_period = len(price_data)
         atr = sum(abs(price_data[i] - price_data[i-1]) for i in range(1, atr_period)) / atr_period
         boxsize = round(atr, 2)
     elif method == 'Percentage':
-        price = (ts['High'].iloc[-1] + ts['Low'].iloc[-1]) / 2
+        # Use the specified percentage of the current price
+        price = (ts['High'][-1] + ts['Low'][-1]) / 2
         boxsize = round(price * (percentage_value / 100), 2)
     elif method == 'Manual':
+        # Use custom manual input value
         boxsize = round(custom_value, 2)
     else:
-        price = (ts['High'].iloc[-1] + ts['Low'].iloc[-1]) / 2
+        # Traditional calculation (default percentage of price, e.g., 1%)
+        price = (ts['High'][-1] + ts['Low'][-1]) / 2
         boxsize = round(price * 0.01, 2)
     return boxsize
 
 def plot_pnf_chart(ts, symbol, boxsize):
-    fig, ax = plt.subplots(figsize=(12, 8))
+    pnf = PointFigureChart(ts=ts, method='h/l', reversal=3, boxsize=boxsize, scaling='abs', title=symbol)
+    pnf.show_trendlines = 'external'
+    pnf.get_trendlines(length=4, mode='weak')
+    pnf.ema(21)
+    # Customize the chart appearance to match the uploaded image
+    pnf.color_up = 'blue'
+    pnf.color_down = 'red'
+    pnf.show()
+    return pnf
 
-    # Calculate indicators
-    bb_indicator = BollingerBands(close=ts['Close'], window=20, window_dev=2)
-    dc_indicator = DonchianChannel(high=ts['High'], low=ts['Low'], close=ts['Close'], window=20)
-    psar_indicator = PSARIndicator(high=ts['High'], low=ts['Low'], close=ts['Close'], step=0.02, max_step=0.2)
+def identify_patterns(pnf):
+    boxes = pnf.boxes
+    patterns = []
 
-    # Add indicators to the dataframe
-    ts['bb_upper'] = bb_indicator.bollinger_hband()
-    ts['bb_lower'] = bb_indicator.bollinger_lband()
-    ts['dc_upper'] = dc_indicator.donchian_channel_hband()
-    ts['dc_lower'] = dc_indicator.donchian_channel_lband()
-    ts['psar'] = psar_indicator.psar()
+    # Double Top
+    for i in range(1, len(boxes) - 1):
+        if boxes[i].type == 'X' and boxes[i-1].type == 'O' and boxes[i+1].type == 'O' and boxes[i].value == boxes[i-1].value:
+            patterns.append(('Double Top', boxes[i].value))
 
-    # Plot the PnF chart using mplfinance
-    pnf_data = ts[['Date', 'Open', 'High', 'Low', 'Close']]
-    pnf_data.set_index('Date', inplace=True)
+    # Double Bottom
+    for i in range(1, len(boxes) - 1):
+        if boxes[i].type == 'O' and boxes[i-1].type == 'X' and boxes[i+1].type == 'X' and boxes[i].value == boxes[i-1].value:
+            patterns.append(('Double Bottom', boxes[i].value))
 
-    mpf.plot(
-        pnf_data,
-        type='pnf',
-        mav=(50),
-        volume=False,
-        title=f"Point & Figure Chart for {symbol}",
-        style='charles',
-        ax=ax,
-        addplot=[
-            mpf.make_addplot(ts['bb_upper'], color='cyan', secondary_y=False),
-            mpf.make_addplot(ts['bb_lower'], color='cyan', secondary_y=False),
-            mpf.make_addplot(ts['dc_upper'], color='orange', secondary_y=False),
-            mpf.make_addplot(ts['dc_lower'], color='orange', secondary_y=False),
-            mpf.make_addplot(ts['psar'], color='purple', marker='.', markersize=5, secondary_y=False),
-        ]
-    )
+    # Triple Top
+    for i in range(2, len(boxes) - 2):
+        if (boxes[i].type == 'X' and 
+            boxes[i-1].type == 'O' and 
+            boxes[i-2].type == 'X' and 
+            boxes[i+1].type == 'O' and 
+            boxes[i+2].type == 'X' and 
+            boxes[i].value == boxes[i-2].value == boxes[i+2].value):
+            patterns.append(('Triple Top', boxes[i].value))
 
-    return fig
+    # Triple Bottom
+    for i in range(2, len(boxes) - 2):
+        if (boxes[i].type == 'O' and 
+            boxes[i-1].type == 'X' and 
+            boxes[i-2].type == 'O' and 
+            boxes[i+1].type == 'X' and 
+            boxes[i+2].type == 'O' and 
+            boxes[i].value == boxes[i-2].value == boxes[i+2].value):
+            patterns.append(('Triple Bottom', boxes[i].value))
+    
+    # Add more patterns as needed
+
+    return patterns
 
 def main():
     st.title("Point and Figure Chart Application")
 
     # Move input elements to the sidebar
-    symbol = st.sidebar.text_input("Enter the stock symbol:", "AAPL")
+    symbol = st.sidebar.text_input("Enter the stock symbol:", "VND.VN")
     period = st.sidebar.selectbox("Select the period for historical data:", ["1mo", "3mo", "6mo", "1y", "5y"])
     
     boxsize_method = st.sidebar.selectbox("Select box size calculation method:", ["ATR", "Percentage", "Manual", "Traditional"])
@@ -97,10 +110,18 @@ def main():
         boxsize = calculate_boxsize(boxsize_method, ts, atr_period, custom_value, percentage_value)
         st.write(f"Box size calculated using {boxsize_method} method: {boxsize}")
         
-        fig = plot_pnf_chart(ts, symbol, boxsize)
+        pnf = plot_pnf_chart(ts, symbol, boxsize)
         
-        st.pyplot(fig)
-        st.text(f"PnF Chart for {symbol}")
+        st.pyplot(plt.gcf())
+        st.text(pnf)
+
+        # Identify patterns
+        patterns = identify_patterns(pnf)
+        if patterns:
+            for pattern in patterns:
+                st.write(f"Pattern detected: {pattern[0]} at value {pattern[1]}")
+        else:
+            st.write("No significant patterns detected.")
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,3 @@
 yfinance
 pypnf
 streamlit
-matplotlib.pyplot

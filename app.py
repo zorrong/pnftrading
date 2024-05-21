@@ -86,7 +86,7 @@ def main():
 
     # Move input elements to the sidebar
     symbol = st.sidebar.text_input("Enter the stock symbol:", "VND.VN")
-    period = st.sidebar.selectbox("Select the period for historical data:", [“1d”, “5d”, “1mo”, “3mo”, “6mo”, “1y”, “2y”, “5y”, “10y”, “ytd”, “max”])
+    period = st.sidebar.selectbox("Select the period for historical data:", ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"])
     
     boxsize_method = st.sidebar.selectbox("Select box size calculation method:", ["ATR", "Percentage", "Manual", "Traditional"])
     

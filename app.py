@@ -43,44 +43,6 @@ def plot_pnf_chart(ts, symbol, boxsize):
     pnf.show()
     return pnf
 
-def identify_patterns(pnf):
-    boxes = pnf.boxes
-    patterns = []
-
-    # Double Top
-    for i in range(1, len(boxes) - 1):
-        if boxes[i].type == 'X' and boxes[i-1].type == 'O' and boxes[i+1].type == 'O' and boxes[i].value == boxes[i-1].value:
-            patterns.append(('Double Top', boxes[i].value))
-
-    # Double Bottom
-    for i in range(1, len(boxes) - 1):
-        if boxes[i].type == 'O' and boxes[i-1].type == 'X' and boxes[i+1].type == 'X' and boxes[i].value == boxes[i-1].value:
-            patterns.append(('Double Bottom', boxes[i].value))
-
-    # Triple Top
-    for i in range(2, len(boxes) - 2):
-        if (boxes[i].type == 'X' and 
-            boxes[i-1].type == 'O' and 
-            boxes[i-2].type == 'X' and 
-            boxes[i+1].type == 'O' and 
-            boxes[i+2].type == 'X' and 
-            boxes[i].value == boxes[i-2].value == boxes[i+2].value):
-            patterns.append(('Triple Top', boxes[i].value))
-
-    # Triple Bottom
-    for i in range(2, len(boxes) - 2):
-        if (boxes[i].type == 'O' and 
-            boxes[i-1].type == 'X' and 
-            boxes[i-2].type == 'O' and 
-            boxes[i+1].type == 'X' and 
-            boxes[i+2].type == 'O' and 
-            boxes[i].value == boxes[i-2].value == boxes[i+2].value):
-            patterns.append(('Triple Bottom', boxes[i].value))
-    
-    # Add more patterns as needed
-
-    return patterns
-
 def main():
     st.title("Point and Figure Chart Application")
 
@@ -114,14 +76,6 @@ def main():
         
         st.pyplot(plt.gcf())
         st.text(pnf)
-
-        # Identify patterns
-        patterns = identify_patterns(pnf)
-        if patterns:
-            for pattern in patterns:
-                st.write(f"Pattern detected: {pattern[0]} at value {pattern[1]}")
-        else:
-            st.write("No significant patterns detected.")
-
+    
 if __name__ == "__main__":
     main()
